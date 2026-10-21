@@ -1,6 +1,7 @@
 #pragma once
 
 #include <utility>
+#include <variant>
 
 template <typename E>
 struct Unexpected {
@@ -18,44 +19,38 @@ template <typename T, typename E>
 class Expected {
 public:
     Expected(const T& value)
-        : m_IsError(false), m_Value(value) {}
+        : m_Value(value) {}
     Expected(T&& value)
-        : m_IsError(false), m_Value(std::move(value)) {}
+        : m_Value(std::move(value)) {}
     Expected(const Unexpected<E>& err)
-        : m_IsError(true), m_Value(err.err) {}
+        : m_Value(std::in_place_index<1>, err.err) {}
     Expected(Unexpected<E>&& err)
-        : m_IsError(true), m_Value(std::move(err.err)) {}
-    Expected(const Expected& e) = delete;
+        : m_Value(std::in_place_index<1>, std::move(err.err)) {}
 
-    ~Expected() {
-        if(m_IsError)
-            m_Value.error.~E();
+    inline T& Value() { return std::get<0>(m_Value); }
+    inline E& Error() { return std::get<1>(m_Value); }
+    inline const T& Value() const { return std::get<0>(m_Value); }
+    inline const E& Error() const { return std::get<1>(m_Value); }
+    inline bool IsError() const { return m_Value.index() == 1; }
+    inline T Or(T& value) {
+        if(IsError())
+            return value;
         else
-            m_Value.value.~T();
+            return Value();
     }
-
-    inline T& Value() { return m_Value.value; }
-    inline E& Error() { return m_Value.error; }
-    inline const T& Value() const { return m_Value.value; }
-    inline const E& Error() const { return m_Value.error; }
-    inline bool IsError() { return m_IsError; }
+    inline T Or(T&& value) {
+        if(IsError())
+            return value;
+        else
+            return Value();
+    }
 
     explicit operator bool() const {
-        return !m_IsError;
+        return !IsError();
     }
-    T& operator*() { return m_Value.value; }
-    const T& operator*() const { return m_Value.value; }
+    T& operator*() { return Value(); }
+    const T& operator*() const { return Value(); }
 
 private:
-    bool m_IsError;
-    union U {
-        T value;
-        E error;
-        U() {}
-        U(const T& v) : value(v) {}
-        U(T&& v) : value(std::move(v)) {}
-        U(const E& e) : error(e) {}
-        U(E&& e) : error(std::move(e)) {}
-        ~U() {}
-    } m_Value;
+    std::variant<T, E> m_Value;
 };

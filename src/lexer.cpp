@@ -12,18 +12,18 @@ Lexer::Lexer(const std::string& source)
 Lexer::~Lexer() {
 }
 
-Token Lexer::Next() {
+Expected<Token, LexerDiagnostic> Lexer::Next() {
     return scanToken();
 }
 
-Token Lexer::Peek() {
+Expected<Token, LexerDiagnostic> Lexer::Peek() {
     // Saved
     size_t start = m_Start;
     size_t current = m_Current;
     size_t column = m_Column;
     size_t line = m_Line;
 
-    const Token tok = scanToken();
+    auto tok = scanToken();
 
     m_Start = start;
     m_Current = current;
@@ -37,10 +37,12 @@ void Lexer::transitionTo(LexerState state) {
 }
 
 void Lexer::advance() {
-    m_Current++;
+    if(m_Current >= m_Source.size())
+        return;
+
     m_Column++;
 
-    if(m_Source[m_Current] == '\n') {
+    if(m_Source[m_Current++] == '\n') {
         // \n should not count as column = 1
         m_Column = 0;
         m_Line++;
@@ -51,8 +53,25 @@ static bool isAlphaNum(const char c) {
     return (std::isalpha(c) || std::isdigit(c));
 }
 
-Token Lexer::scanToken() {
-    while(m_Source[m_Current] == ' ' && m_Current < m_Source.size())
+Unexpected<LexerDiagnostic> Lexer::raiseError(std::string reason) {
+    return LexerDiagnostic {
+        .reason = reason,
+        .line = m_Line,
+        .column = m_Column,
+    };
+}
+
+Token Lexer::makeToken(const std::string_view lexeme, TokenType tok) {
+    return Token {
+        .type = tok,
+        .lexeme = lexeme,
+        .line = m_Line,
+        .column = m_Column,
+    };
+}
+
+Expected<Token, LexerDiagnostic> Lexer::scanToken() {
+    while(m_Current < m_Source.size() && m_Source[m_Current] == ' ')
         m_Current++;
 
     bool isFinished = false;
@@ -63,7 +82,7 @@ Token Lexer::scanToken() {
     m_Start = m_Current;
 
     while(!isFinished) {
-        const char current = m_Source[m_Current];
+        const char current = (m_Current < m_Source.size()) ? m_Source[m_Current] : '\0';
 
         switch(m_State) {
             case LexerState::Start:
@@ -80,25 +99,24 @@ Token Lexer::scanToken() {
                 switch(current) {
                     case '+':
                         transitionTo(LexerState::Plus);
-                        advance();
                         break;
                     case '-':
                         transitionTo(LexerState::Minus);
-                        advance();
                         break;
                     case '*':
                         transitionTo(LexerState::Multiply);
-                        advance();
                         break;
                     case '/':
                         transitionTo(LexerState::Divide);
-                        advance();
                         break;
                     case '\n':
                         transitionTo(LexerState::Error);
-                        advance();
                         break;
+                    default:
+                        advance();
+                        return raiseError("Invalid token.");
                 }
+                advance();
                 break;
             case LexerState::Identifier:
                 if(isAlphaNum(current)) {
@@ -110,6 +128,7 @@ Token Lexer::scanToken() {
                     advance();
                     break;
                 }
+                tokType = TokenType::Identifier;
                 transitionTo(LexerState::Finish);
                 break;
             case LexerState::IdentifierUnderscore:
@@ -122,9 +141,8 @@ Token Lexer::scanToken() {
                     advance();
                     break;
                 }
-                transitionTo(LexerState::Error);
                 advance();
-                break;
+                return raiseError("Unexpected character.");
             case LexerState::Integer:
                 if(current == '.') {
                     transitionTo(LexerState::IPv4a1);
@@ -132,8 +150,9 @@ Token Lexer::scanToken() {
                     break;
                 }
                 if(!std::isdigit(current)) {
+                    tokType = TokenType::Integer;
                     transitionTo(LexerState::Finish);
-                    advance();
+                    break;
                 }
                 advance();
                 break;
@@ -145,7 +164,8 @@ Token Lexer::scanToken() {
                     break;
                 }
                 if(!std::isdigit(current)) {
-                    transitionTo(LexerState::Error);
+                    advance();
+                    return raiseError("Expected digit, or '.'.");
                 }
                 advance();
                 break;
@@ -157,7 +177,8 @@ Token Lexer::scanToken() {
                     break;
                 }
                 if(!std::isdigit(current)) {
-                    transitionTo(LexerState::Error);
+                    advance();
+                    return raiseError("Expected digit, or '.'.");
                 }
                 advance();
                 break;
@@ -170,6 +191,7 @@ Token Lexer::scanToken() {
                 }
                 if(!std::isdigit(current))
                 {
+                    tokType = TokenType::IPv4;
                     transitionTo(LexerState::Finish);
                     break;
                 }
@@ -183,25 +205,31 @@ Token Lexer::scanToken() {
                     transitionTo(LexerState::CIDR);
                     break;
                 }
-                transitionTo(LexerState::Error);
+                return raiseError("Expected CIDR.");
                 break;
             case LexerState::CIDR:
                 if(!std::isdigit(current))
                 {
+                    tokType = TokenType::IPv4CIDR;
                     transitionTo(LexerState::Finish);
                     break;
                 }
                 advance();
                 break;
             case LexerState::Plus:
+                tokType = TokenType::Plus;
+                transitionTo(LexerState::Finish);
                 break;
             case LexerState::Minus:
+                tokType = TokenType::Minus;
+                transitionTo(LexerState::Finish);
                 break;
             case LexerState::Multiply:
-                m_State = LexerState::Finish;
+                tokType = TokenType::Multiply;
                 transitionTo(LexerState::Finish);
                 break;
             case LexerState::Divide:
+                tokType = TokenType::Divide;
                 transitionTo(LexerState::Finish);
                 break;
             case LexerState::Error:
@@ -212,5 +240,7 @@ Token Lexer::scanToken() {
         }
     }
 
-    return Token();
+    std::string_view lexeme = std::string_view(m_Source).substr(m_Start, m_Current - m_Start);
+
+    return makeToken(lexeme, tokType);
 }
