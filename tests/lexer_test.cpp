@@ -26,3 +26,12 @@ TEST_CASE("Lexer tokenize identifier", "[lexer][identifier]") {
 
     REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Identifier);
 }
+
+TEST_CASE("Lexer tokenize assign", "[lexer][assign]") {
+    Lexer lexer("val ip = 192.168.100.5/23");
+
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Val);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Identifier);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Assign);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::IPv4CIDR);
+}

@@ -1,7 +1,9 @@
 #include "lexer.hpp"
 
+#include <unordered_map>
+
 enum class LexerState {
-    Start, Finish, Error, Identifier, IdentifierUnderscore, Integer, IPv4a1, IPv4a2, IPv4a3, SlashCIDR, CIDR, Plus, Minus, Multiply, Divide,
+    Start, Finish, Error, Identifier, IdentifierUnderscore, Integer, IPv4a1, IPv4a2, IPv4a3, SlashCIDR, CIDR, Assign, Plus, Minus, Multiply, Divide,
 };
 
 Lexer::Lexer(const std::string& source)
@@ -53,6 +55,24 @@ static bool isAlphaNum(const char c) {
     return (std::isalpha(c) || std::isdigit(c));
 }
 
+static TokenType mapToKeyword(const std::string_view lexeme) {
+    static const std::unordered_map<std::string_view, TokenType> map = {
+        { "val"    , TokenType::Val },
+        { "network", TokenType::Network },
+        { "switch" , TokenType::Switch },
+        { "if"     , TokenType::If },
+        { "else"   , TokenType::Else },
+        { "for"    , TokenType::For },
+    };
+
+    auto m = map.find(lexeme);
+
+    if(m != map.end())
+        return m->second;
+
+    return TokenType::Identifier;
+}
+
 Unexpected<LexerDiagnostic> Lexer::raiseError(std::string reason) {
     return LexerDiagnostic {
         .reason = reason,
@@ -71,8 +91,11 @@ Token Lexer::makeToken(const std::string_view lexeme, TokenType tok) {
 }
 
 Expected<Token, LexerDiagnostic> Lexer::scanToken() {
+    if(m_Current >= m_Source.size())
+        return makeToken("", TokenType::EndOfFile);
+
     while(m_Current < m_Source.size() && m_Source[m_Current] == ' ')
-        m_Current++;
+        advance();
 
     bool isFinished = false;
     bool isInvalid = false;
@@ -97,6 +120,9 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                     break;
                 }
                 switch(current) {
+                    case '=':
+                        transitionTo(LexerState::Assign);
+                        break;
                     case '+':
                         transitionTo(LexerState::Plus);
                         break;
@@ -108,9 +134,6 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                         break;
                     case '/':
                         transitionTo(LexerState::Divide);
-                        break;
-                    case '\n':
-                        transitionTo(LexerState::Error);
                         break;
                     default:
                         advance();
@@ -128,7 +151,7 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                     advance();
                     break;
                 }
-                tokType = TokenType::Identifier;
+                tokType = mapToKeyword(std::string_view(m_Source).substr(m_Start, m_Current - m_Start));
                 transitionTo(LexerState::Finish);
                 break;
             case LexerState::IdentifierUnderscore:
@@ -215,6 +238,10 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                     break;
                 }
                 advance();
+                break;
+            case LexerState::Assign:
+                tokType = TokenType::Assign;
+                transitionTo(LexerState::Finish);
                 break;
             case LexerState::Plus:
                 tokType = TokenType::Plus;

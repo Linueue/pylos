@@ -6,9 +6,16 @@
 
 #define TOKEN_LIST() \
     X(Identifier), \
+    X(Val), \
+    X(Network), \
+    X(Switch), \
+    X(If), \
+    X(Else), \
+    X(For), \
     X(Integer), \
     X(IPv4), \
     X(IPv4CIDR), \
+    X(Assign), \
     X(Plus), \
     X(Minus), \
     X(Multiply), \
@@ -33,6 +40,8 @@ struct Token {
     int AsInt() const;
     IPv4 AsIPv4() const;
     Cidr AsCIDR() const;
+
+    std::string_view GetTokenString() const;
 
     inline bool operator==(const TokenType other) const { return type == other; }
 };

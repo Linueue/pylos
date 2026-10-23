@@ -2,6 +2,12 @@
 
 #include <string>
 
+#define X(name) #name
+static constexpr const std::string_view g_TokenStrings[] = {
+    TOKEN_LIST()
+};
+#undef X
+
 int32_t Token::AsInt() const {
     return std::stoi(std::string(lexeme));
 }
@@ -36,4 +42,8 @@ Cidr Token::AsCIDR() const {
     std::string cidrString(lexeme.substr(slashIdx + 1, lexeme.size()));
     uint8_t cidr = std::stoi(cidrString);
     return Cidr { .ip = ip, .cidr = cidr };
+}
+
+std::string_view Token::GetTokenString() const {
+    return g_TokenStrings[(int32_t)type];
 }
