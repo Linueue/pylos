@@ -4,7 +4,10 @@
 #include "lexer.hpp"
 
 int main() {
-    Lexer lexer("val x = 192.167.0.5/23 + 23 + 5 - 10 / 23 + 533");
+    Lexer lexer(R"(network Campus {
+        val hr: Subnet = 192.168.10.0/24
+        val hrVlan = vlan(id = 10, subnet = hr, gateway = hr.host(1))
+    })");
 
     while(true) {
         auto tok = lexer.Next();

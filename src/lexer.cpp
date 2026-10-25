@@ -3,7 +3,7 @@
 #include <unordered_map>
 
 enum class LexerState {
-    Start, Finish, Error, Identifier, IdentifierUnderscore, Integer, IPv4a1, IPv4a2, IPv4a3, SlashCIDR, CIDR, Assign, Plus, Minus, Multiply, Divide,
+    Start, Finish, Error, Identifier, IdentifierUnderscore, Integer, IPv4a1, IPv4a2, IPv4a3, SlashCIDR, CIDR, Assign, Plus, Minus, Multiply, Divide, LeftCurly, RightCurly, LeftParen, RightParen, Comma, Dot, Colon,
 };
 
 Lexer::Lexer(const std::string& source)
@@ -94,7 +94,7 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
     if(m_Current >= m_Source.size())
         return makeToken("", TokenType::EndOfFile);
 
-    while(m_Current < m_Source.size() && m_Source[m_Current] == ' ')
+    while(m_Current < m_Source.size() && (m_Source[m_Current] == ' ' || m_Source[m_Current] == '\n'))
         advance();
 
     bool isFinished = false;
@@ -135,9 +135,30 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                     case '/':
                         transitionTo(LexerState::Divide);
                         break;
+                    case '{':
+                        transitionTo(LexerState::LeftCurly);
+                        break;
+                    case '}':
+                        transitionTo(LexerState::RightCurly);
+                        break;
+                    case '(':
+                        transitionTo(LexerState::LeftParen);
+                        break;
+                    case ')':
+                        transitionTo(LexerState::RightParen);
+                        break;
+                    case ',':
+                        transitionTo(LexerState::Comma);
+                        break;
+                    case '.':
+                        transitionTo(LexerState::Dot);
+                        break;
+                    case ':':
+                        transitionTo(LexerState::Colon);
+                        break;
                     default:
                         advance();
-                        return raiseError("Invalid token.");
+                        return raiseError("Invalid token");
                 }
                 advance();
                 break;
@@ -165,7 +186,7 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                     break;
                 }
                 advance();
-                return raiseError("Unexpected character.");
+                return raiseError("Invalid identifier, identifier must not start, nor end with _.");
             case LexerState::Integer:
                 if(current == '.') {
                     transitionTo(LexerState::IPv4a1);
@@ -257,6 +278,34 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                 break;
             case LexerState::Divide:
                 tokType = TokenType::Divide;
+                transitionTo(LexerState::Finish);
+                break;
+            case LexerState::LeftCurly:
+                tokType = TokenType::LeftCurly;
+                transitionTo(LexerState::Finish);
+                break;
+            case LexerState::RightCurly:
+                tokType = TokenType::RightCurly;
+                transitionTo(LexerState::Finish);
+                break;
+            case LexerState::LeftParen:
+                tokType = TokenType::LeftParen;
+                transitionTo(LexerState::Finish);
+                break;
+            case LexerState::RightParen:
+                tokType = TokenType::RightParen;
+                transitionTo(LexerState::Finish);
+                break;
+            case LexerState::Comma:
+                tokType = TokenType::Comma;
+                transitionTo(LexerState::Finish);
+                break;
+            case LexerState::Dot:
+                tokType = TokenType::Dot;
+                transitionTo(LexerState::Finish);
+                break;
+            case LexerState::Colon:
+                tokType = TokenType::Colon;
                 transitionTo(LexerState::Finish);
                 break;
             case LexerState::Error:

@@ -2,6 +2,7 @@
 
 #include <lexer.hpp>
 
+
 static Token defaultToken = {
     .type = TokenType::EndOfFile,
     .lexeme = "",
@@ -28,10 +29,59 @@ TEST_CASE("Lexer tokenize identifier", "[lexer][identifier]") {
 }
 
 TEST_CASE("Lexer tokenize assign", "[lexer][assign]") {
-    Lexer lexer("val ip = 192.168.100.5/23");
+    Lexer lexer("val ip: Subnet = 192.168.100.5/23");
+
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Val);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Identifier);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Colon);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Identifier);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Assign);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::IPv4CIDR);
+}
+
+TEST_CASE("Lexer tokenize scopes", "[lexer][scopes]") {
+    Lexer lexer(R"(network Campus {
+        val hr: Subnet = 192.168.10.0/24
+        val hrVlan = vlan(id = 10, subnet = hr, gateway = hr.host(1))
+    })");
+
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Network);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Identifier);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::LeftCurly);
+
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Val);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Identifier);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Colon);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Identifier);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Assign);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::IPv4CIDR);
 
     REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Val);
     REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Identifier);
     REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Assign);
-    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::IPv4CIDR);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Identifier);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::LeftParen);
+
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Identifier);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Assign);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Integer);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Comma);
+
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Identifier);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Assign);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Identifier);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Comma);
+
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Identifier);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Assign);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Identifier);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Dot);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Identifier);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::LeftParen);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::Integer);
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::RightParen);
+
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::RightParen);
+
+    REQUIRE(lexer.Next().Or(defaultToken) == TokenType::RightCurly);
 }

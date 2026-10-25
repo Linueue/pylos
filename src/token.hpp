@@ -24,6 +24,9 @@
     X(RightCurly), \
     X(LeftParen), \
     X(RightParen), \
+    X(Comma), \
+    X(Dot), \
+    X(Colon), \
     X(EndOfFile), \
 
 #define X(name) name
