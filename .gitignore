@@ -1,3 +1,6 @@
 build/
+build-release/
+build-wasm/
 out/
 out-release/
+out-wasm/

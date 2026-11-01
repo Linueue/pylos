@@ -6,7 +6,7 @@
 int main() {
     Lexer lexer(R"(network Campus {
         val hr: Subnet = 192.168.10.0/24
-        val hrVlan = vlan(id = 10, subnet = hr, gateway = hr.host(1))
+        val hrVlan = vlan(id = 10, name = "hello", subnet = hr, gateway = hr.host(1))
     })");
 
     while(true) {

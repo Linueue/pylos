@@ -1,9 +1,10 @@
 #include "lexer.hpp"
 
 #include <unordered_map>
+#include <unordered_set>
 
 enum class LexerState {
-    Start, Finish, Error, Identifier, IdentifierUnderscore, Integer, IPv4a1, IPv4a2, IPv4a3, SlashCIDR, CIDR, Assign, Plus, Minus, Multiply, Divide, LeftCurly, RightCurly, LeftParen, RightParen, Comma, Dot, Colon,
+    Start, Finish, Error, Identifier, IdentifierUnderscore, Integer, IPv4a1, IPv4a2, IPv4a3, SlashCIDR, CIDR, Assign, Plus, Minus, Multiply, Divide, LeftCurly, RightCurly, LeftParen, RightParen, Comma, Dot, Colon, String, EscapeString,
 };
 
 Lexer::Lexer(const std::string& source)
@@ -73,6 +74,25 @@ static TokenType mapToKeyword(const std::string_view lexeme) {
     return TokenType::Identifier;
 }
 
+static TokenType mapToValueTypeHint(const std::string_view lexeme) {
+    static const std::unordered_set<std::string_view> map = {
+        "String",
+        "Integer",
+        "Int",
+        "Boolean",
+        "Bool",
+        "IPAddress",
+        "Subnet",
+    };
+
+    auto m = map.find(lexeme);
+
+    if(m != map.end())
+        return TokenType::ValueTypeHint;
+
+    return TokenType::Identifier;
+}
+
 Unexpected<LexerDiagnostic> Lexer::raiseError(std::string reason) {
     return LexerDiagnostic {
         .reason = reason,
@@ -90,11 +110,15 @@ Token Lexer::makeToken(const std::string_view lexeme, TokenType tok) {
     };
 }
 
+static bool isWhitespace(const char c) {
+    return (c == ' ' || c == '\n' || c == '\t');
+}
+
 Expected<Token, LexerDiagnostic> Lexer::scanToken() {
     if(m_Current >= m_Source.size())
         return makeToken("", TokenType::EndOfFile);
 
-    while(m_Current < m_Source.size() && (m_Source[m_Current] == ' ' || m_Source[m_Current] == '\n'))
+    while(m_Current < m_Source.size() && isWhitespace(m_Source[m_Current]))
         advance();
 
     bool isFinished = false;
@@ -156,13 +180,16 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                     case ':':
                         transitionTo(LexerState::Colon);
                         break;
+                    case '\"':
+                        transitionTo(LexerState::String);
+                        break;
                     default:
                         advance();
                         return raiseError("Invalid token");
                 }
                 advance();
                 break;
-            case LexerState::Identifier:
+            case LexerState::Identifier: {
                 if(isAlphaNum(current)) {
                     advance();
                     break;
@@ -172,9 +199,13 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                     advance();
                     break;
                 }
-                tokType = mapToKeyword(std::string_view(m_Source).substr(m_Start, m_Current - m_Start));
+                std::string_view lexeme = std::string_view(m_Source).substr(m_Start, m_Current - m_Start);
+                tokType = mapToKeyword(lexeme);
+                if(tokType == TokenType::Identifier)
+                    tokType = mapToValueTypeHint(lexeme);
                 transitionTo(LexerState::Finish);
                 break;
+            }
             case LexerState::IdentifierUnderscore:
                 if(isAlphaNum(current)) {
                     transitionTo(LexerState::Identifier);
@@ -259,6 +290,35 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                     break;
                 }
                 advance();
+                break;
+            case LexerState::String:
+                if(current == '\"') {
+                    advance();
+                    tokType = TokenType::StringLiteral;
+                    transitionTo(LexerState::Finish);
+                    break;
+                }
+                if(current == '\n')
+                    return raiseError("Unterminated string literal");
+                if(current == '\\')
+                    transitionTo(LexerState::EscapeString);
+                advance();
+                break;
+            case LexerState::EscapeString:
+                switch(current) {
+                    case 'n':
+                    case 't':
+                    case 'r':
+                    case '\\':
+                    case '\'':
+                    case '\"':
+                    case '0':
+                        advance();
+                        transitionTo(LexerState::String);
+                        break;
+                    default:
+                        return raiseError("Invalid escape sequence");
+                }
                 break;
             case LexerState::Assign:
                 tokType = TokenType::Assign;

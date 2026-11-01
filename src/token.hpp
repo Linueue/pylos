@@ -7,6 +7,7 @@
 #define TOKEN_LIST() \
     X(Identifier), \
     X(Val), \
+    X(ValueTypeHint), \
     X(Network), \
     X(Switch), \
     X(If), \
@@ -15,6 +16,7 @@
     X(Integer), \
     X(IPv4), \
     X(IPv4CIDR), \
+    X(StringLiteral), \
     X(Assign), \
     X(Plus), \
     X(Minus), \
