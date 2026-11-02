@@ -10,6 +10,7 @@
     X(ValueTypeHint), \
     X(Network), \
     X(Switch), \
+    X(Port), \
     X(If), \
     X(Else), \
     X(For), \
@@ -24,11 +25,17 @@
     X(Divide), \
     X(LeftCurly), \
     X(RightCurly), \
+    X(LeftBracket), \
+    X(RightBracket), \
     X(LeftParen), \
     X(RightParen), \
     X(Comma), \
     X(Dot), \
     X(Colon), \
+    X(Comment), \
+    X(BooleanLiteral), \
+    X(Logical), \
+    X(Relational), \
     X(EndOfFile), \
 
 #define X(name) name

@@ -24,7 +24,7 @@ public:
 private:
     Expected<Token, LexerDiagnostic> scanToken();
     Unexpected<LexerDiagnostic> raiseError(std::string reason);
-    Token makeToken(const std::string_view lexeme, TokenType tok);
+    Token makeToken(const std::string_view lexeme, const size_t line, const size_t column, TokenType tok);
     void transitionTo(LexerState state);
     void advance();
 

@@ -4,9 +4,20 @@
 #include "lexer.hpp"
 
 int main() {
-    Lexer lexer(R"(network Campus {
-        val hr: Subnet = 192.168.10.0/24
-        val hrVlan = vlan(id = 10, name = "hello", subnet = hr, gateway = hr.host(1))
+    Lexer lexer(R"(val hasGuest: Bool = false
+
+    // Ignore this comment
+    // This is a test
+    /*
+        This is also a test
+    */
+
+    if hasGuest && 12 > 5 || 23 * 5 >= 5 {
+        port Gi0/2 {
+            mode = Access(vlan)
+            enabled = true
+            label = "Guest"
+        }
     })");
 
     while(true) {
