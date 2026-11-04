@@ -27,6 +27,13 @@ void tokenRequire(Lexer& lexer, const std::vector<TokenType> tokens) {
         }
 
         auto actualTok = nextTok.Value();
+
+        UNSCOPED_INFO("Expected: "
+            << Token::GetTokenString(tok)
+            << " == "
+            << actualTok.GetTokenString()
+        );
+
         REQUIRE(actualTok == tok);
     }
 }

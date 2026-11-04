@@ -5,7 +5,7 @@
 #include <unordered_set>
 
 enum class LexerState {
-    Start, Finish, Identifier, IdentifierUnderscore, Integer, IPv4a1, IPv4a2, IPv4a3, SlashCIDR, CIDR, Assign, Plus, Minus, Multiply, Divide, LeftCurly, RightCurly, LeftBracket, RightBracket, LeftParen, RightParen, Comma, Dot, Colon, String, EscapeString, Comment, MultiLineComment, MultiLineEndComment, LogicalNot, LogicalAnd, LogicalOr, RelationalEqual, RelationalNotEqual, RelationalGreaterThan, RelationalLessThan,
+    Start, Finish, Identifier, IdentifierUnderscore, Integer, IPv4a1, IPv4a1Digits, IPv4a2, IPv4a2Digits, IPv4a3, IPv4a3Digits, SlashCIDR, CIDR, Assign, Plus, Minus, Multiply, Divide, Modulo, LeftCurly, RightCurly, LeftBracket, RightBracket, LeftParen, RightParen, Comma, Dot, Range, Colon, String, EscapeString, Comment, MultiLineComment, MultiLineEndComment, LogicalNot, LogicalAnd, LogicalOr, RelationalEqual, RelationalNotEqual, RelationalGreaterThan, RelationalLessThan,
 };
 
 Lexer::Lexer(const std::string& source)
@@ -100,6 +100,8 @@ static TokenType mapToValueTypeHint(const std::string_view lexeme) {
         "Subnet",
         "Device",
         "VLAN",
+        "Port",
+        "Interface",
     };
 
     auto m = map.find(lexeme);
@@ -128,7 +130,7 @@ Token Lexer::makeToken(const std::string_view lexeme, const size_t line, const s
 }
 
 static bool isWhitespace(const char c) {
-    return (c == ' ' || c == '\n' || c == '\t' || c == '\r');
+    return (c == ' ' || c == '\n' || c == '\t' || c == '\r' || c == ';');
 }
 
 Expected<Token, LexerDiagnostic> Lexer::scanToken() {
@@ -176,6 +178,9 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                         break;
                     case '/':
                         transitionTo(LexerState::Divide);
+                        break;
+                    case '%':
+                        transitionTo(LexerState::Modulo);
                         break;
                     case '!':
                         transitionTo(LexerState::LogicalNot);
@@ -254,6 +259,7 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                 if(current == '_') {
                     advance();
                     break;
+                }
                 
                 return raiseError("Invalid identifier, identifier must not start, nor end with _");
             case LexerState::Integer:
@@ -271,32 +277,46 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                 break;
             // 192.[162].0.1
             case LexerState::IPv4a1:
+                if(!std::isdigit(current))
+                    return raiseError("Expected digit");
+                advance();
+                transitionTo(LexerState::IPv4a1Digits);
+                break;
+            case LexerState::IPv4a1Digits:
                 if(current == '.') {
                     transitionTo(LexerState::IPv4a2);
                     advance();
                     break;
                 }
-                if(!std::isdigit(current)) {
-                    advance();
+                if(!std::isdigit(current))
                     return raiseError("Expected digit, or '.'");
-                }
                 advance();
                 break;
             // 192.162.[0].1
             case LexerState::IPv4a2:
+                if(!std::isdigit(current))
+                    return raiseError("Expected digit");
+                advance();
+                transitionTo(LexerState::IPv4a2Digits);
+                break;
+            case LexerState::IPv4a2Digits:
                 if(current == '.') {
                     transitionTo(LexerState::IPv4a3);
                     advance();
                     break;
                 }
-                if(!std::isdigit(current)) {
-                    advance();
+                if(!std::isdigit(current))
                     return raiseError("Expected digit, or '.'");
-                }
                 advance();
                 break;
             // 192.162.0.[1]
             case LexerState::IPv4a3:
+                if(!std::isdigit(current))
+                    return raiseError("Expected digit");
+                advance();
+                transitionTo(LexerState::IPv4a3Digits);
+                break;
+            case LexerState::IPv4a3Digits:
                 if(current == '/') {
                     transitionTo(LexerState::SlashCIDR);
                     advance();
@@ -306,8 +326,7 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                 if(current == '.')
                     return raiseError("Invalid IPv4 address");
 
-                if(!std::isdigit(current))
-                {
+                if(!std::isdigit(current)) {
                     tokType = TokenType::IPv4;
                     transitionTo(LexerState::Finish);
                     break;
@@ -322,7 +341,7 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                     transitionTo(LexerState::CIDR);
                     break;
                 }
-                return raiseError("Expected CIDR.");
+                return raiseError("Expected CIDR");
                 break;
             case LexerState::CIDR:
                 if(!std::isdigit(current))
@@ -401,6 +420,10 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                         break;
                 }
                 break;
+            case LexerState::Modulo:
+                tokType = TokenType::Modulo;
+                transitionTo(LexerState::Finish);
+                break;
             case LexerState::LeftCurly:
                 tokType = TokenType::LeftCurly;
                 transitionTo(LexerState::Finish);
@@ -430,7 +453,17 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                 transitionTo(LexerState::Finish);
                 break;
             case LexerState::Dot:
+                if(current == '.') {
+                    transitionTo(LexerState::Range);
+                    advance();
+                    break;
+                }
+
                 tokType = TokenType::Dot;
+                transitionTo(LexerState::Finish);
+                break;
+            case LexerState::Range:
+                tokType = TokenType::Range;
                 transitionTo(LexerState::Finish);
                 break;
             case LexerState::Colon:

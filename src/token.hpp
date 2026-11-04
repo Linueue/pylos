@@ -23,6 +23,7 @@
     X(Minus), \
     X(Multiply), \
     X(Divide), \
+    X(Modulo), \
     X(LeftCurly), \
     X(RightCurly), \
     X(LeftBracket), \
@@ -31,6 +32,7 @@
     X(RightParen), \
     X(Comma), \
     X(Dot), \
+    X(Range), \
     X(Colon), \
     X(Comment), \
     X(BooleanLiteral), \
@@ -54,6 +56,7 @@ struct Token {
     Cidr AsCIDR() const;
 
     std::string_view GetTokenString() const;
+    static std::string_view GetTokenString(TokenType type);
 
     inline bool operator==(const TokenType other) const { return type == other; }
 };

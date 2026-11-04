@@ -47,3 +47,7 @@ Cidr Token::AsCIDR() const {
 std::string_view Token::GetTokenString() const {
     return g_TokenStrings[(int32_t)type];
 }
+
+std::string_view Token::GetTokenString(TokenType type) {
+    return g_TokenStrings[(int32_t)type];
+}

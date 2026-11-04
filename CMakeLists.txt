@@ -20,7 +20,6 @@ add_library(pylos_lib ${SOURCES_CPP})
 target_include_directories(pylos_lib PUBLIC src/)
 
 if(NOT EMSCRIPTEN)
-
     Include(FetchContent)
     FetchContent_Declare(
         Catch2
