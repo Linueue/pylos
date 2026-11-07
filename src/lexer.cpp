@@ -138,7 +138,7 @@ Token Lexer::makeToken(const std::string_view lexeme, const size_t line, const s
 }
 
 static bool isWhitespace(const char c) {
-    return (c == ' ' || c == '\t' || c == '\r');
+    return (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == ';');
 }
 
 Expected<Token, LexerDiagnostic> Lexer::scanToken() {
