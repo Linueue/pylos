@@ -41,13 +41,13 @@ void tokenRequire(Lexer& lexer, const std::vector<TokenType> tokens) {
 TEST_CASE("Lexer tokenize IPv4", "[lexer][IPv4]") {
     Lexer lexer("192.168.0.12");
 
-    tokenRequire(lexer, {TokenType::IPv4});
+    tokenRequire(lexer, {TokenType::IPv4Literal});
 }
 
-TEST_CASE("Lexer tokenize IPv4CIDR", "[lexer][IPv4CIDR]") {
+TEST_CASE("Lexer tokenize IPv4CIDRLiteral", "[lexer][IPv4CIDR]") {
     Lexer lexer("192.168.0.12/23");
 
-    tokenRequire(lexer, {TokenType::IPv4CIDR});
+    tokenRequire(lexer, {TokenType::IPv4CIDRLiteral});
 }
 
 TEST_CASE("Lexer tokenize identifier", "[lexer][identifier]") {
@@ -65,7 +65,7 @@ TEST_CASE("Lexer tokenize assign", "[lexer][assign]") {
         TokenType::Colon,
         TokenType::ValueTypeHint,
         TokenType::Assign,
-        TokenType::IPv4CIDR,
+        TokenType::IPv4CIDRLiteral,
     });
 }
 
@@ -85,7 +85,7 @@ TEST_CASE("Lexer tokenize scopes", "[lexer][scopes]") {
         TokenType::Colon,
         TokenType::ValueTypeHint,
         TokenType::Assign,
-        TokenType::IPv4CIDR,
+        TokenType::IPv4CIDRLiteral,
 
         TokenType::Val,
         TokenType::Identifier,
@@ -95,7 +95,7 @@ TEST_CASE("Lexer tokenize scopes", "[lexer][scopes]") {
 
         TokenType::Identifier,
         TokenType::Assign,
-        TokenType::Integer,
+        TokenType::IntegerLiteral,
         TokenType::Comma,
 
         TokenType::Identifier,
@@ -109,7 +109,7 @@ TEST_CASE("Lexer tokenize scopes", "[lexer][scopes]") {
         TokenType::Dot,
         TokenType::Identifier,
         TokenType::LeftParen,
-        TokenType::Integer,
+        TokenType::IntegerLiteral,
         TokenType::RightParen,
 
         TokenType::RightParen,
@@ -146,21 +146,21 @@ TEST_CASE("Lexer tokenize if statements", "[lexer][statements]") {
         TokenType::If,
         TokenType::Identifier,
         TokenType::Logical,
-        TokenType::Integer,
+        TokenType::IntegerLiteral,
         TokenType::Relational,
-        TokenType::Integer,
+        TokenType::IntegerLiteral,
         TokenType::Logical,
-        TokenType::Integer,
+        TokenType::IntegerLiteral,
         TokenType::Multiply,
-        TokenType::Integer,
+        TokenType::IntegerLiteral,
         TokenType::Relational,
-        TokenType::Integer,
+        TokenType::IntegerLiteral,
         TokenType::LeftCurly,
 
         TokenType::Port,
         TokenType::Identifier,
         TokenType::Divide,
-        TokenType::Integer,
+        TokenType::IntegerLiteral,
         TokenType::LeftCurly,
 
         TokenType::Identifier,

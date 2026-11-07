@@ -10,13 +10,21 @@
     X(ValueTypeHint), \
     X(Network), \
     X(Switch), \
+    X(Router), \
+    X(Interface), \
     X(Port), \
     X(If), \
     X(Else), \
     X(For), \
-    X(Integer), \
-    X(IPv4), \
-    X(IPv4CIDR), \
+    X(While), \
+    X(Do), \
+    X(In), \
+    X(Access), \
+    X(Trunk), \
+    X(Vlan), \
+    X(IntegerLiteral), \
+    X(IPv4Literal), \
+    X(IPv4CIDRLiteral), \
     X(StringLiteral), \
     X(Assign), \
     X(Plus), \

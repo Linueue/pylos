@@ -69,16 +69,24 @@ static bool isAlphaNum(const char c) {
 
 static TokenType mapToKeyword(const std::string_view lexeme) {
     static const std::unordered_map<std::string_view, TokenType> map = {
-        { "val"    , TokenType::Val },
-        { "value"  , TokenType::Val },
-        { "network", TokenType::Network },
-        { "switch" , TokenType::Switch },
-        { "port"   , TokenType::Port },
-        { "if"     , TokenType::If },
-        { "else"   , TokenType::Else },
-        { "for"    , TokenType::For },
-        { "true"   , TokenType::BooleanLiteral },
-        { "false"  , TokenType::BooleanLiteral },
+        { "val"       , TokenType::Val },
+        { "value"     , TokenType::Val },
+        { "network"   , TokenType::Network },
+        { "switch"    , TokenType::Switch },
+        { "router"    , TokenType::Router },
+        { "interface" , TokenType::Interface },
+        { "port"      , TokenType::Port },
+        { "if"        , TokenType::If },
+        { "else"      , TokenType::Else },
+        { "for"       , TokenType::For },
+        { "while"     , TokenType::While },
+        { "do"        , TokenType::Do },
+        { "in"        , TokenType::In },
+        { "Access"    , TokenType::Access },
+        { "Trunk"     , TokenType::Trunk },
+        { "vlan"      , TokenType::Vlan },
+        { "true"      , TokenType::BooleanLiteral },
+        { "false"     , TokenType::BooleanLiteral },
     };
 
     auto m = map.find(lexeme);
@@ -130,7 +138,7 @@ Token Lexer::makeToken(const std::string_view lexeme, const size_t line, const s
 }
 
 static bool isWhitespace(const char c) {
-    return (c == ' ' || c == '\n' || c == '\t' || c == '\r' || c == ';');
+    return (c == ' ' || c == '\t' || c == '\r');
 }
 
 Expected<Token, LexerDiagnostic> Lexer::scanToken() {
@@ -264,12 +272,22 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                 return raiseError("Invalid identifier, identifier must not start, nor end with _");
             case LexerState::Integer:
                 if(current == '.') {
+                    bool isDigitNext = (
+                        m_Current + 1 < m_Source.size() &&
+                        std::isdigit(m_Source[m_Current + 1])
+                    );
+
+                    if(!isDigitNext) {
+                        tokType = TokenType::IntegerLiteral;
+                        transitionTo(LexerState::Finish);
+                        break;
+                    }
                     transitionTo(LexerState::IPv4a1);
                     advance();
                     break;
                 }
                 if(!std::isdigit(current)) {
-                    tokType = TokenType::Integer;
+                    tokType = TokenType::IntegerLiteral;
                     transitionTo(LexerState::Finish);
                     break;
                 }
@@ -277,6 +295,13 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                 break;
             // 192.[162].0.1
             case LexerState::IPv4a1:
+                // This is for 1..5 ranges to work
+                // Since (num) (dot) assumes it's already an IPv4
+                if(current == '.') {
+                    transitionTo(LexerState::Range);
+                    advance();
+                    break;
+                }
                 if(!std::isdigit(current))
                     return raiseError("Expected digit");
                 advance();
@@ -327,7 +352,7 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                     return raiseError("Invalid IPv4 address");
 
                 if(!std::isdigit(current)) {
-                    tokType = TokenType::IPv4;
+                    tokType = TokenType::IPv4Literal;
                     transitionTo(LexerState::Finish);
                     break;
                 }
@@ -346,7 +371,7 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
             case LexerState::CIDR:
                 if(!std::isdigit(current))
                 {
-                    tokType = TokenType::IPv4CIDR;
+                    tokType = TokenType::IPv4CIDRLiteral;
                     transitionTo(LexerState::Finish);
                     break;
                 }
@@ -359,7 +384,7 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                     transitionTo(LexerState::Finish);
                     break;
                 }
-                if(current == '\n')
+                if(current == '\n' || current == '\0')
                     return raiseError("Unterminated string literal");
                 if(current == '\\')
                     transitionTo(LexerState::EscapeString);
@@ -472,7 +497,7 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                 break;
             case LexerState::Comment:
                 tokType = TokenType::Comment;
-                if(current == '\n')
+                if(current == '\n' || current == '\0')
                     transitionTo(LexerState::Finish);
                 advance();
                 break;
