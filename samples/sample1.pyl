@@ -1,0 +1,92 @@
+network Campus {
+  val baseVlan: Int = 10
+  val useDhcp: Bool = true
+  val enableGuest: Bool = true
+
+  val hrVlanId: Int = baseVlan + 0
+  val engVlanId: Int = baseVlan + 10
+  val gstVlanId: Int = baseVlan + 20
+
+  val vlanIdValid: Bool = gstVlanId >= 1 && gstVlanId <= 4094
+
+  val hr: Subnet  = 192.168.10.0/24
+  val eng: Subnet = 192.168.20.0/24
+  val gst: Subnet = 192.168.30.0/24
+
+  val hrVlan = vlan(
+    id = hrVlanId,
+    name = "HR",
+    subnet = hr,
+    gateway = hr.host(1)
+  )
+
+  val engVlan = vlan(
+    id = engVlanId,
+    name = "Engineering",
+    subnet = eng,
+    gateway = eng.host(1)
+  )
+
+  if enableGuest && vlanIdValid {
+    val gstVlan = vlan(
+      id = gstVlanId,
+      name = "Guest",
+      subnet = gst,
+      gateway = gst.host(1)
+    )
+  }
+
+  switch SW1 {
+    port Gi0/1 {
+      mode = Access(hrVlan),
+      enabled = true,
+      label = "HR desk"
+    }
+
+    port Gi0/2 {
+      mode = Access(engVlan)
+      enabled = true
+      label = "Engineering desk"
+    }
+
+    if enableGuest && vlanIdValid {
+      port Gi0/24 {
+        mode = Trunk(
+          allowed = [hrVlan, engVlan, gstVlan],
+          native = 99
+        )
+        enabled = true
+        label = "Uplink to R1"
+      }
+    } else {
+      port Gi0/24 {
+        mode = Trunk(
+          allowed = [hrVlan, engVlan],
+          native = 99
+        )
+        enabled = true
+        label = "Uplink to R1 (no guest)"
+      }
+    }
+  }
+
+  router R1 {
+    interface Gi0/0 {
+      ip = hrVlan.gateway
+      enabled = true
+    }
+
+    interface Gi0/1 {
+      ip = engVlan.gateway
+      enabled = true
+    }
+
+    if enableGuest && vlanIdValid {
+      interface Gi0/2 {
+        ip = gstVlan.gateway
+        enabled = useDhcp
+      }
+    }
+  }
+}
+
