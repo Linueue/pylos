@@ -4,6 +4,13 @@
 
 #include "types.hpp"
 
+/*
+ * The tokens list using the X Macro technique
+ *
+ * This makes it possible to create an enum of Tokens
+ * and a list of strings that can be accessed as g_TokenString[(int32_t)TokenType::Identifier]
+ * by definint a TOKEN_LIST macro once
+*/
 #define TOKEN_LIST() \
     X(Identifier), \
     X(Val), \
@@ -54,6 +61,11 @@ enum class TokenType {
 };
 #undef X
 
+// The Token struct with type, lexeme, line, and column
+// This provides utilities such as AsInt(), AsIPv4, and AsCIDR
+// It also provides functions such as GetTokenString that returns the string version
+// of the token type
+// Supports == operator against TokenType
 struct Token {
     TokenType type;
     std::string_view lexeme;

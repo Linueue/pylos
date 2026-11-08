@@ -4,6 +4,9 @@
 #include <unordered_map>
 #include <unordered_set>
 
+// The internal lexer state
+// Not to be confused with the TokenType
+// As the LexerState have more states it's using for tokenization, such as String, or StringEscape
 enum class LexerState {
     Start, Finish, Identifier, IdentifierUnderscore, Integer, IPv4a1, IPv4a1Digits, IPv4a2, IPv4a2Digits, IPv4a3, IPv4a3Digits, SlashCIDR, CIDR, Assign, Plus, Minus, Multiply, Divide, Modulo, LeftCurly, RightCurly, LeftBracket, RightBracket, LeftParen, RightParen, Comma, Dot, Range, Colon, String, EscapeString, Comment, MultiLineComment, MultiLineEndComment, LogicalNot, LogicalAnd, LogicalOr, RelationalEqual, RelationalNotEqual, RelationalGreaterThan, RelationalLessThan,
 };
@@ -13,16 +16,16 @@ Lexer::Lexer(const std::string& source)
     m_State = LexerState::Start;
 }
 
-Lexer::~Lexer() {
-}
-
 Expected<Token, LexerDiagnostic> Lexer::Next() {
     while(true) {
         auto tok = scanToken();
 
-        if(!tok)
+        // If token has error, return it immediately
+        if(tok.IsError())
             return tok;
 
+        // If the token is successful, test whether it's a comment
+        // If it's a comment, ignore it
         if((*tok) == TokenType::Comment)
             continue;
 
@@ -31,7 +34,12 @@ Expected<Token, LexerDiagnostic> Lexer::Next() {
 }
 
 Expected<Token, LexerDiagnostic> Lexer::Peek() {
-    // Saved
+    // Saves the internal states
+    // This ensures that the next token is not consumed
+    // That is, when multiple consecutive calles to Peek()
+    // will return the same token until Next() is explicitly called
+    // This is done by saving the states, then simulating
+    // the Next() call, then restoring the saved states
     size_t start = m_Start;
     size_t current = m_Current;
     size_t column = m_Column;
@@ -57,8 +65,7 @@ void Lexer::advance() {
     m_Column++;
 
     if(m_Source[m_Current++] == '\n') {
-        // \n should not count as column = 1
-        m_Column = 0;
+        m_Column = 1;
         m_Line++;
     }
 }
@@ -67,6 +74,7 @@ static bool isAlphaNum(const char c) {
     return (std::isalpha(c) || std::isdigit(c));
 }
 
+// Maps the lexeme to a token keyword using a HashMap
 static TokenType mapToKeyword(const std::string_view lexeme) {
     static const std::unordered_map<std::string_view, TokenType> map = {
         { "val"       , TokenType::Val },
@@ -91,12 +99,18 @@ static TokenType mapToKeyword(const std::string_view lexeme) {
 
     auto m = map.find(lexeme);
 
+    // If m cannot find the lexeme in the HashMap
+    // it will return map.end(), otherwise it will return the Pair
+    // Which has the m->first, and m->second
     if(m != map.end())
         return m->second;
 
+    // Otherwise, this is an identifier
+    // While a DFA will work here, it will take more states than necessary
     return TokenType::Identifier;
 }
 
+// Maps to the ValueTypeHint token when found in the HashSet
 static TokenType mapToValueTypeHint(const std::string_view lexeme) {
     static const std::unordered_set<std::string_view> map = {
         "String",
@@ -120,6 +134,8 @@ static TokenType mapToValueTypeHint(const std::string_view lexeme) {
     return TokenType::Identifier;
 }
 
+// Returns Unexpected<LexerDiagnostic>
+// This is a helper function to make it easier to create the struct
 Unexpected<LexerDiagnostic> Lexer::raiseError(std::string reason) {
     return LexerDiagnostic {
         .reason = reason,
@@ -128,6 +144,7 @@ Unexpected<LexerDiagnostic> Lexer::raiseError(std::string reason) {
     };
 }
 
+// A helper function to make it easier to construct the Token struct
 Token Lexer::makeToken(const std::string_view lexeme, const size_t line, const size_t column, TokenType tok) {
     return Token {
         .type = tok,
@@ -137,17 +154,24 @@ Token Lexer::makeToken(const std::string_view lexeme, const size_t line, const s
     };
 }
 
+// Checks whether c is a whitespace such as spaces, or new line character
 static bool isWhitespace(const char c) {
     return (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == ';');
 }
 
+// Does the actual tokenization
 Expected<Token, LexerDiagnostic> Lexer::scanToken() {
+    // If it is a whitespace, advance immediately
+    // We only tokenize non whitespace characters
     while(m_Current < m_Source.size() && isWhitespace(m_Source[m_Current]))
         advance();
 
+    // If the current index position grows outside the source size
+    // return the TokenType::EndOfFile token
     if(m_Current >= m_Source.size())
         return makeToken("", m_Line, m_Column, TokenType::EndOfFile);
-
+    
+    // Preparation for the actual tokenization
     bool isFinished = false;
     TokenType tokType;
     m_State = LexerState::Start;
@@ -157,15 +181,19 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
     m_Start = m_Current;
 
     while(!isFinished) {
-        const char current = (m_Current < m_Source.size()) ? m_Source[m_Current] : '\0';
+        // Prevent string overflow
+        const char current = (m_Current < m_Source.size()) ?
+            m_Source[m_Current] : '\0';
 
         switch(m_State) {
             case LexerState::Start:
+                // If it starts with an alphabet, assume that it's an identifier
                 if(std::isalpha(current)) {
                     transitionTo(LexerState::Identifier);
                     advance();
                     break;
                 }
+                // If it starts with a digit, assume that it's an integer
                 if(std::isdigit(current)) {
                     transitionTo(LexerState::Integer);
                     advance();
@@ -241,18 +269,25 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                 }
                 advance();
                 break;
+            // Identifier rules:
+            //  - It must not start with a digit
+            //  - Underscore is allowed, but it must not start nor end with it
+            //  - Alphabet, digit, and underscore is only allowed
             case LexerState::Identifier: {
                 if(isAlphaNum(current)) {
                     advance();
                     break;
                 }
+                // Transition to IdentifierUnderscore as it's not a valid final state
                 if(current == '_') {
                     transitionTo(LexerState::IdentifierUnderscore);
                     advance();
                     break;
                 }
+                // Extract the lexeme
                 std::string_view lexeme = std::string_view(m_Source).substr(m_Start, m_Current - m_Start);
                 tokType = mapToKeyword(lexeme);
+                // If the returned token is Identifier, try mapping it to ValueTypeHint
                 if(tokType == TokenType::Identifier)
                     tokType = mapToValueTypeHint(lexeme);
                 transitionTo(LexerState::Finish);
@@ -269,9 +304,12 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                     break;
                 }
                 
-                return raiseError("Invalid identifier, identifier must not start, nor end with _");
+                return raiseError("Invalid identifier as it must not start, nor end with _");
             case LexerState::Integer:
                 if(current == '.') {
+                    // Peeks 1 character ahead if it's a digit
+                    // If it it's not, then it must be an integer literal
+                    // If it is a digit, then it must be an IP Address
                     bool isDigitNext = (
                         m_Current + 1 < m_Source.size() &&
                         std::isdigit(m_Source[m_Current + 1])
@@ -294,14 +332,8 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                 advance();
                 break;
             // 192.[162].0.1
+            // IPv4a[n] is the dots, IPv4a[n]Digits is the actual digit to prevent 1.../23 being a valid IP address
             case LexerState::IPv4a1:
-                // This is for 1..5 ranges to work
-                // Since (num) (dot) assumes it's already an IPv4
-                if(current == '.') {
-                    transitionTo(LexerState::Range);
-                    advance();
-                    break;
-                }
                 if(!std::isdigit(current))
                     return raiseError("Expected digit");
                 advance();

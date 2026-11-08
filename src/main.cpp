@@ -25,7 +25,7 @@ static Expected<Args, const char*> handleArgs(const std::vector<std::string_view
 static const Expected<std::string, const char*> readFile(const std::string_view path) {
     std::ifstream file(path.data());
 
-    if(!file)
+    if(!file.is_open())
         return Unexpected("Could not open file.");
 
     std::stringstream buffer;
@@ -47,7 +47,7 @@ int main(int32_t argc, char* argv[]) {
     auto contents = readFile((*args).ProgramFile);
 
     if(contents.IsError()) {
-        std::cerr << args.Error() << "\n";
+        std::cerr << contents.Error() << "\n";
         return -1;
     }
 

@@ -8,6 +8,18 @@
       "binaryDir": "${sourceDir}/out/${presetName}",
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+        "CMAKE_CXX_FLAGS": "/W4 /FS /MP",
+        "CMAKE_C_FLAGS": "/W4 /FS /MP"
+      }
+    },
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/out/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+        "CMAKE_CXX_FLAGS": "/W4 /FS /MP",
+        "CMAKE_C_FLAGS": "/W4 /FS /MP"
       }
     },
     {

@@ -90,7 +90,7 @@ TEST_CASE("Lexer tokenize scopes", "[lexer][scopes]") {
         TokenType::Val,
         TokenType::Identifier,
         TokenType::Assign,
-        TokenType::Identifier,
+        TokenType::Vlan,
         TokenType::LeftParen,
 
         TokenType::Identifier,
@@ -129,7 +129,7 @@ TEST_CASE("Lexer tokenize if statements", "[lexer][statements]") {
 
     if hasGuest && 12 > 5 || 23 * 5 >= 5 {
         port Gi0/2 {
-            mode = Access(vlan)
+            mode = Access(hrVlan)
             enabled = true
             label = "Guest"
         }
@@ -165,7 +165,7 @@ TEST_CASE("Lexer tokenize if statements", "[lexer][statements]") {
 
         TokenType::Identifier,
         TokenType::Assign,
-        TokenType::Identifier,
+        TokenType::Access,
         TokenType::LeftParen,
         TokenType::Identifier,
         TokenType::RightParen,
