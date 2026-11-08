@@ -25,6 +25,12 @@ and it will prompt you to install the recommended extensions. Install that,
 and it will also prompt you what type of build you want to do. You may choose
 between Debug/Release. To compile, press `ctrl + shift + b`.
 
+You can then open it using the terminal by,
+
+```
+.\out\debug\Debug\Pylos.exe
+```
+
 ### Windows (MSVC)
 
 If you have Visual Studio (*not to be confused with VSCode*), you can directly
@@ -35,6 +41,16 @@ cmake -B out
 ```
 
 It will generate solution files, which you can then double click to open.
+
+### Windows (Clang + Ninja)
+
+This is personally what I use. You can do the following,
+
+```
+cmake -B out -G "Ninja"
+cd out
+ninja
+```
 
 ### Linux
 

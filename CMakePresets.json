@@ -5,7 +5,7 @@
     {
       "name": "base",
       "hidden": true,
-      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "binaryDir": "${sourceDir}/out/${presetName}",
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
@@ -23,7 +23,13 @@
       "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
     },
     {
-      "name": "ninja",
+      "name": "ninja-debug",
+      "displayName": "Ninja (Debug, for Nvim/clangd users)",
+      "inherits": "debug",
+      "generator": "Ninja"
+    },
+    {
+      "name": "ninja-release",
       "displayName": "Ninja (Debug, for Nvim/clangd users)",
       "inherits": "debug",
       "generator": "Ninja"
@@ -37,9 +43,10 @@
     }
   ],
   "buildPresets": [
-    { "name": "debug",   "configurePreset": "debug" },
-    { "name": "release", "configurePreset": "release" },
-    { "name": "ninja",   "configurePreset": "ninja" },
+    { "name": "debug",   "configurePreset": "debug", "jobs": 8 },
+    { "name": "release", "configurePreset": "release", "jobs": 8 },
+    { "name": "ninja-debug",   "configurePreset": "ninja-debug" },
+    { "name": "ninja-release",   "configurePreset": "ninja-release" },
     { "name": "vs2022",  "configurePreset": "vs2022", "configuration": "Debug" }
   ]
 }

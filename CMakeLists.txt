@@ -16,6 +16,10 @@ list(REMOVE_ITEM SOURCES_CPP
     "${CMAKE_CURRENT_SOURCE_DIR}/src/wasm/wasm_exports.cpp"
 )
 
+if(MSVC)
+    add_compile_options(/FS)
+endif()
+
 add_library(pylos_lib ${SOURCES_CPP})
 target_include_directories(pylos_lib PUBLIC src/)
 

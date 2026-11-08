@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run pylos",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${command:cmake.launchTargetPath}",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "preLaunchTask": "Build"
+    },
+    {
+      "name": "Run tests (Catch2)",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/out/debug/tests/Debug/lexer_tests.exe",
+      "args": ["--reporter", "compact"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "preLaunchTask": "Build"
+    }
+  ]
+}
