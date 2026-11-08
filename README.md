@@ -28,7 +28,7 @@ between Debug/Release. To compile, press `ctrl + shift + b`.
 You can then open it using the terminal by,
 
 ```
-.\out\debug\Debug\Pylos.exe
+.\out\debug\Debug\Pylos.exe ../samples/sample1.pyl
 ```
 
 ### Windows (MSVC)
@@ -50,6 +50,7 @@ This is personally what I use. You can do the following,
 cmake -B out -G "Ninja"
 cd out
 ninja
+Pylos.exe ../samples/sample1.pyl
 ```
 
 ### Linux
@@ -61,7 +62,19 @@ You can directly execute these commands:
 cmake -B out
 cd out
 make -j8
+./Pylos ../samples/sample1.pyl
 ```
 
 The `make -j8` command, the flag `-j` specifies how many threads will be used
 to compile it.
+
+
+### WebAssembly (Wasm)
+
+Make sure to install (Emscripten)[https://emscripten.org], then in the command line, type,
+
+```
+emcmake cmake -B out-wasm -DCMAKE_BUILD_TYPE=Release
+cd out
+make (or ninja)
+```
