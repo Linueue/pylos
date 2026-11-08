@@ -11,7 +11,7 @@ provided for visualizing errors, or the actual lexical analyzer.
 
 ## Build
 
-Please download (CMake)[https://cmake.org] from their official website,
+Please download [CMake](https://cmake.org) from their official website,
 or with winget,
 
 ```
@@ -71,7 +71,7 @@ to compile it.
 
 ### WebAssembly (Wasm)
 
-Make sure to install (Emscripten)[https://emscripten.org], then in the command line, type,
+Make sure to install [Emscripten](https://emscripten.org), then in the command line, type,
 
 ```
 emcmake cmake -B out-wasm -DCMAKE_BUILD_TYPE=Release
