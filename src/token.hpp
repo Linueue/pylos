@@ -53,6 +53,7 @@
     X(BooleanLiteral), \
     X(Logical), \
     X(Relational), \
+    X(EndOfStatement), \
     X(EndOfFile), \
 
 #define X(name) name

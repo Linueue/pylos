@@ -8,12 +8,11 @@
 // Not to be confused with the TokenType
 // As the LexerState have more states it's using for tokenization, such as String, or StringEscape
 enum class LexerState {
-    Start, Finish, Identifier, IdentifierUnderscore, Integer, IPv4a1, IPv4a1Digits, IPv4a2, IPv4a2Digits, IPv4a3, IPv4a3Digits, SlashCIDR, CIDR, Assign, Plus, Minus, Multiply, Divide, Modulo, LeftCurly, RightCurly, LeftBracket, RightBracket, LeftParen, RightParen, Comma, Dot, Range, Colon, String, EscapeString, Comment, MultiLineComment, MultiLineEndComment, LogicalNot, LogicalAnd, LogicalOr, RelationalEqual, RelationalNotEqual, RelationalGreaterThan, RelationalLessThan,
+    Start, Finish, Identifier, IdentifierUnderscore, Integer, IPv4a1, IPv4a1Digits, IPv4a2, IPv4a2Digits, IPv4a3, IPv4a3Digits, SlashCIDR, CIDR, Assign, Plus, Minus, Multiply, Divide, Modulo, LeftCurly, RightCurly, LeftBracket, RightBracket, LeftParen, RightParen, Comma, Dot, Range, Colon, String, EscapeString, Comment, MultiLineComment, MultiLineEndComment, LogicalNot, LogicalAnd, LogicalOr, RelationalEqual, RelationalNotEqual, RelationalGreaterThan, RelationalLessThan, EndOfStatement,
 };
 
 Lexer::Lexer(const std::string& source)
     : m_Source(source) {
-    m_State = LexerState::Start;
 }
 
 Expected<Token, LexerDiagnostic> Lexer::Next() {
@@ -156,7 +155,7 @@ Token Lexer::makeToken(const std::string_view lexeme, const size_t line, const s
 
 // Checks whether c is a whitespace such as spaces, or new line character
 static bool isWhitespace(const char c) {
-    return (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == ';');
+    return (c == ' ' || c == '\t' || c == '\n' || c == '\r');
 }
 
 // Does the actual tokenization
@@ -262,6 +261,9 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                         break;
                     case '\"':
                         transitionTo(LexerState::String);
+                        break;
+                    case ';':
+                        transitionTo(LexerState::EndOfStatement);
                         break;
                     default:
                         advance();
@@ -599,6 +601,10 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
             case LexerState::RelationalEqual:
             case LexerState::RelationalNotEqual:
                 tokType = TokenType::Relational;
+                transitionTo(LexerState::Finish);
+                break;
+            case LexerState::EndOfStatement:
+                tokType = TokenType::EndOfStatement;
                 transitionTo(LexerState::Finish);
                 break;
             case LexerState::Finish:
