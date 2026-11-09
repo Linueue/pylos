@@ -2,6 +2,7 @@
 
 #include <string_view>
 
+#include "utils/expected.hpp"
 #include "types.hpp"
 
 /*
@@ -62,19 +63,28 @@ enum class TokenType {
 };
 #undef X
 
-// The Token struct with type, lexeme, line, and column
-// This provides utilities such as AsInt(), AsIPv4, and AsCIDR
-// It also provides functions such as GetTokenString that returns the string version
-// of the token type
-// Supports == operator against TokenType
+/*
+ * The Token struct with type, lexeme, line, and column
+ * This provides utilities such as AsInt(), AsIPv4, and AsCIDR
+ * It also provides functions such as GetTokenString that returns the string version
+ * of the token type
+ * Supports == operator against TokenType
+ */
 struct Token {
     TokenType type;
     std::string_view lexeme;
     size_t line, column;
 
-    int AsInt() const;
-    IPv4 AsIPv4() const;
-    Cidr AsCIDR() const;
+    /*
+     * Tries to convert to int32_t/IPv4/Cidr
+     * Used in syntax analyzers
+     * @return
+     *  On success, returns T
+     *  On failure, returns error description
+     */
+    Expected<int32_t, const char*> AsInt() const;
+    Expected<IPv4, const char*> AsIPv4() const;
+    Expected<Cidr, const char*> AsCIDR() const;
 
     std::string_view GetTokenString() const;
     static std::string_view GetTokenString(TokenType type);

@@ -16,6 +16,7 @@ Lexer::Lexer(const std::string& source)
 }
 
 Expected<Token, LexerDiagnostic> Lexer::Next() {
+    // This omits Comment tokens as they are not necessary for parsing
     while(true) {
         auto tok = scanToken();
 
@@ -121,7 +122,6 @@ static TokenType mapToValueTypeHint(const std::string_view lexeme) {
         "Subnet",
         "Device",
         "VLAN",
-        "Port",
         "Interface",
     };
 
@@ -393,14 +393,11 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                 advance();
                 break;
             case LexerState::SlashCIDR:
-                advance();
+                if(!std::isdigit(current))
+                    return raiseError("Expected CIDR");
 
-                if(std::isdigit(current))
-                {
-                    transitionTo(LexerState::CIDR);
-                    break;
-                }
-                return raiseError("Expected CIDR");
+                advance();
+                transitionTo(LexerState::CIDR);
                 break;
             case LexerState::CIDR:
                 if(!std::isdigit(current))
@@ -547,7 +544,7 @@ Expected<Token, LexerDiagnostic> Lexer::scanToken() {
                 tokType = TokenType::Comment;
                 if(current == '/')
                     transitionTo(LexerState::Finish);
-                else
+                else if(current != '*')
                     transitionTo(LexerState::MultiLineComment);
                 advance();
                 break;

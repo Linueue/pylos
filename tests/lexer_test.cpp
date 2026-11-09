@@ -3,13 +3,6 @@
 
 #include <lexer.hpp>
 
-static Token defaultToken = {
-    .type = TokenType::EndOfFile,
-    .lexeme = "",
-    .line = 0,
-    .column = 0,
-};
-
 void tokenRequire(Lexer& lexer, const std::vector<TokenType> tokens) {
     for(const auto tok : tokens) {
         auto nextTok = lexer.Next();

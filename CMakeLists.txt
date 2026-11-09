@@ -17,7 +17,9 @@ list(REMOVE_ITEM SOURCES_CPP
 )
 
 if(MSVC)
-    add_compile_options(/FS)
+    add_compile_options(/FS /W4)
+else()
+    add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
 add_library(pylos_lib ${SOURCES_CPP})

@@ -13,13 +13,15 @@ struct Unexpected {
 template <typename E>
 Unexpected(E) -> Unexpected<E>;
 
-// Similar to std::expected<T, E> from C++20, and Result<T, E> in Rust
-// C++20 is not fully supported on most compilers
+// Similar to std::expected<T, E> from C++23, and Result<T, E> in Rust
+// C++23 is not fully supported on most compilers
 template <typename T, typename E>
 class Expected {
 public:
+    // Copy constructor
     Expected(const T& value)
         : m_Value(value) {}
+    // Move constructor
     Expected(T&& value)
         : m_Value(std::move(value)) {}
     Expected(const Unexpected<E>& err)
