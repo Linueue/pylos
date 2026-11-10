@@ -8,7 +8,14 @@
 // Not to be confused with the TokenType
 // As the LexerState have more states it's using for tokenization, such as String, or StringEscape
 enum class LexerState {
-    Start, Finish, Identifier, IdentifierUnderscore, Integer, IPv4a1, IPv4a1Digits, IPv4a2, IPv4a2Digits, IPv4a3, IPv4a3Digits, SlashCIDR, CIDR, Assign, Plus, Minus, Multiply, Divide, Modulo, LeftCurly, RightCurly, LeftBracket, RightBracket, LeftParen, RightParen, Comma, Dot, Range, Colon, String, EscapeString, Comment, MultiLineComment, MultiLineEndComment, LogicalNot, LogicalAnd, LogicalOr, RelationalEqual, RelationalNotEqual, RelationalGreaterThan, RelationalLessThan, EndOfStatement,
+    Start, Finish, Identifier, IdentifierUnderscore, Integer,
+    IPv4a1, IPv4a1Digits, IPv4a2, IPv4a2Digits, IPv4a3, IPv4a3Digits,
+    SlashCIDR, CIDR, Assign, Plus, Minus, Multiply, Divide, Modulo,
+    LeftCurly, RightCurly, LeftBracket, RightBracket, LeftParen,
+    RightParen, Comma, Dot, Range, Colon, String, EscapeString,
+    Comment, MultiLineComment, MultiLineEndComment, LogicalNot, LogicalAnd,
+    LogicalOr, RelationalEqual, RelationalNotEqual, RelationalGreaterThan,
+    RelationalLessThan, EndOfStatement,
 };
 
 Lexer::Lexer(const std::string& source)
