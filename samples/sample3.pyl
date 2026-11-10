@@ -1,0 +1,76 @@
+network BranchOffice {
+  val baseVlan: Int = 200
+  val enableGuest: Bool = true
+
+  val corpVlanId: Int  = baseVlan + 0
+  val guestVlanId: Int = baseVlan + 10
+  val vlanValid: Bool  = guestVlanId <= 4094
+
+  val corp: Subnet  = 192.168.200.0/24
+  val guest: Subnet = 192.168.210.0/24
+
+  val corpVlan = vlan(
+    id      = corpVlanId,
+    name    = "CORP",
+    subnet  = corp,
+    gateway = corp.host(1)
+  )
+
+  // Guest VLAN only exists when guest access is on
+  if enableGuest && vlanValid {
+    val guestVlan = vlan(
+      id      = guestVlanId,
+      name    = "GUEST",
+      subnet  = guest,
+      gateway = guest.host(1)
+    )
+  }
+
+  switch BranchSwitch1 {
+    // Corp desks on ports 1 to 4
+    for i in 1..4 {
+      port Gi0/i {
+        mode    = Access(corpVlan)
+        enabled = true
+        label   = "Corp desk"
+      }
+    }
+
+    /* Uplink to the router. Guest is included only when
+     * it is enabled and the VLAN plan is valid.
+    */
+    if enableGuest && vlanValid {
+      port Gi0/24 {
+        mode    = Trunk(
+          allowed = [corpVlan, guestVlan],
+          native  = 999
+        )
+        enabled = true
+        label   = "Uplink to BranchRouter1"
+      }
+    } else {
+      port Gi0/24 {
+        mode    = Trunk(
+          allowed = [corpVlan],
+          native  = 999
+        )
+        enabled = true
+        label   = "Uplink to BranchRouter1 (no guest)"
+      }
+    }
+  }
+
+  router BranchRouter1 {
+    interface Gi0/0 {
+      ip      = corpVlan.gateway
+      enabled = true
+    }
+
+    if enableGuest && vlanValid {
+      interface Gi0/1 {
+        ip      = guestVlan.gateway
+        enabled = true
+      }
+    }
+  }
+}

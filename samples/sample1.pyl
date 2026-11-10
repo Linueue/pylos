@@ -1,3 +1,8 @@
+// Campus Network
+/*
+ * The campus network that has
+ * HR, ENG, and GST VLANs
+*/
 network Campus {
   val baseVlan: Int = 10
   val useDhcp: Bool = true

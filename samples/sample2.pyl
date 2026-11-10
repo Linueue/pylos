@@ -1,0 +1,150 @@
+network BranchOffice {
+  // Global design parameters
+  val baseVlan: Int = 100
+  val siteType: String = "branch"
+  val enableGuest: Bool = true
+  val enableVoice: Bool = true
+
+  // Derived VLAN IDs (arithmetic expressions)
+  val corpVlanId: Int = baseVlan + 0
+  val voiceVlanId: Int = baseVlan + 10
+  val guestVlanId: Int = baseVlan + 20
+  val mgmtVlanId: Int = (baseVlan + 30) * 2 / 2
+
+  // Compile-time validity check
+  val vlanPlanValid: Bool = mgmtVlanId >= 1 && mgmtVlanId <= 4094
+
+  // Subnets
+  val corp: Subnet  = 192.168.100.0/24
+  val voice: Subnet = 192.168.110.0/24
+  val guest: Subnet = 192.168.120.0/24
+  val mgmt: Subnet  = 192.168.130.0/24
+
+  // VLAN declarations
+  val corpVlan = vlan(
+    id      = corpVlanId,
+    name    = "CORP",
+    subnet  = corp,
+    gateway = corp.host(1)
+  )
+
+  val mgmtVlan = vlan(
+    id      = mgmtVlanId,
+    name    = "MGMT",
+    subnet  = mgmt,
+    gateway = mgmt.host(1)
+  )
+
+  if enableVoice {
+    val voiceVlan = vlan(
+      id      = voiceVlanId,
+      name    = "VOICE",
+      subnet  = voice,
+      gateway = voice.host(1)
+    )
+  }
+
+  if enableGuest && vlanPlanValid {
+    val guestVlan = vlan(
+      id      = guestVlanId,
+      name    = "GUEST",
+      subnet  = guest,
+      gateway = guest.host(1)
+    )
+  }
+
+  // Access switch
+  switch BR01ASW1 {
+    // User desks: VLAN 101-104 via for loop
+    for i in 1..4 {
+      port Gi0/i {
+        mode    = Access(corpVlan)
+        enabled = true
+        label   = "Corp desk"
+      }
+    }
+
+    // Voice ports, only when voice is enabled
+    if enableVoice {
+      for i in 5..8 {
+        port Gi0/i {
+          mode    = Access(voiceVlan)
+          enabled = true
+          label   = "IP phone"
+        }
+      }
+    }
+
+    // Management port
+    port Gi0/48 {
+      mode    = Access(mgmtVlan)
+      enabled = true
+      label   = "OOB management"
+    }
+
+    // Uplink to the router — depends on site type and guest
+    if siteType == "hq" {
+      port Gi0/49 {
+        mode    = Trunk(
+          allowed = [corpVlan, mgmtVlan],
+          native  = 999
+        )
+        enabled = true
+        label   = "Uplink to core"
+      }
+    } else if siteType == "branch" {
+      if enableGuest && vlanPlanValid {
+        port Gi0/49 {
+          mode    = Trunk(
+            allowed = [corpVlan, mgmtVlan, guestVlan],
+            native  = 999
+          )
+          enabled = true
+          label   = "WAN uplink (with guest)"
+        }
+      } else {
+        port Gi0/49 {
+          mode    = Trunk(
+            allowed = [corpVlan, mgmtVlan],
+            native  = 999
+          )
+          enabled = true
+          label   = "WAN uplink (data only)"
+        }
+      }
+    } else {
+      port Gi0/49 {
+        mode    = Access(corpVlan)
+        enabled = true
+        label   = "Standalone uplink"
+      }
+    }
+  }
+
+  // Branch router
+  router BR01RTR1 {
+    interface Gi0/0 {
+      ip      = corpVlan.gateway
+      enabled = true
+    }
+
+    interface Gi0/1 {
+      ip      = mgmtVlan.gateway
+      enabled = true
+    }
+
+    if enableVoice {
+      interface Gi0/2 {
+        ip      = voiceVlan.gateway
+        enabled = true
+      }
+    }
+
+    if enableGuest && vlanPlanValid {
+      interface Gi0/3 {
+        ip      = guestVlan.gateway
+        enabled = true
+      }
+    }
+  }
+}
