@@ -112,10 +112,3 @@ struct BlockExpr : ASTNode {
     explicit BlockExpr(std::span<ASTNode*> statements)
         : ASTNode(NodeType::BlockExpr), statements(statements) {}
 };
-
-void fuck() {
-    ASTContext ctx;
-    auto literal1 = ctx.Create<IntegerLiteral>(10);
-    auto literal2 = ctx.Create<IntegerLiteral>(2);
-    auto binary = ctx.Create<BinaryExpr>(literal1, literal2, BinaryExpr::Op::Add);
-}
