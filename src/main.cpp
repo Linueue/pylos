@@ -6,6 +6,8 @@
 #include <string>
 
 #include "lexer.hpp"
+#include "ast.hpp"
+#include "ast_visitor.hpp"
 
 struct Args {
     std::string_view ProgramFile;
@@ -35,7 +37,42 @@ static const Expected<std::string, const char*> readFile(const std::string_view 
     return contents;
 }
 
+void test() {
+    ASTContext ctx;
+    auto block = ctx.Create<BlockExpr>(
+        ctx.CreateNodeList(
+            {
+                ctx.Create<VariableDecl>(
+                    "variable",
+                    ctx.Create<BinaryExpr>(
+                        ctx.Create<IntegerLiteral>(10),
+                        ctx.Create<BinaryExpr>(
+                            ctx.Create<IntegerLiteral>(12),
+                            ctx.Create<IntegerLiteral>(13),
+                            BinaryExpr::Op::Mul
+                        ),
+                        BinaryExpr::Op::Add
+                    )
+                ),
+                ctx.Create<VariableDecl>(
+                    "variable2",
+                    ctx.Create<BinaryExpr>(
+                        ctx.Create<IntegerLiteral>(10),
+                        ctx.Create<VariableRef>("variable"),
+                        BinaryExpr::Op::Add
+                    )
+                ),
+            }
+        )
+    );
+    PrintVisitor printVisitor;
+    printVisitor.Visit(block);
+}
+
 int main(int32_t argc, char* argv[]) {
+    test();
+    return 0;
+
     const std::vector<std::string_view> argsList(argv, argv + argc);
     auto args = handleArgs(argsList);
 

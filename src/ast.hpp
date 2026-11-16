@@ -36,7 +36,9 @@ private:
 };
 
 enum class NodeType {
-    Integer, Boolean, String, IPAddress, CIDR, Binary, VariableDecl, VariableRef, BlockExpr,
+    #define AST_NODE(name) name,
+    #include "ast_nodes.inc"
+    #undef AST_NODE
 };
 
 struct ASTNode {
@@ -48,47 +50,64 @@ struct IntegerLiteral : ASTNode {
     int32_t value;
 
     explicit IntegerLiteral(int32_t value)
-        : ASTNode(NodeType::Integer), value(value) {}
+        : ASTNode(NodeType::IntegerLiteral), value(value) {}
 };
 
 struct BooleanLiteral : ASTNode {
     bool value;
 
     explicit BooleanLiteral(bool value)
-        : ASTNode(NodeType::Boolean), value(value) {}
+        : ASTNode(NodeType::BooleanLiteral), value(value) {}
 };
 
 struct StringLiteral : ASTNode {
     std::string_view value;
 
     explicit StringLiteral(std::string_view value)
-        : ASTNode(NodeType::String), value(value) {}
+        : ASTNode(NodeType::StringLiteral), value(value) {}
 };
 
 struct IPAddressLiteral : ASTNode {
     IPv4 value;
 
     explicit IPAddressLiteral(IPv4 value)
-        : ASTNode(NodeType::IPAddress), value(value) {}
+        : ASTNode(NodeType::IPAddressLiteral), value(value) {}
 };
 
 struct CIDRLiteral : ASTNode {
     Cidr value;
 
     explicit CIDRLiteral(Cidr value)
-        : ASTNode(NodeType::CIDR), value(value) {}
+        : ASTNode(NodeType::CIDRLiteral), value(value) {}
 };
 
 struct BinaryExpr : ASTNode {
+    #define OP_LIST() \
+        X(Add) \
+        X(Sub) \
+        X(Mul) \
+        X(Div) \
+        X(Mod)
     enum class Op {
-        Add, Sub, Mul, Div,
+        #define X(name) name,
+        OP_LIST()
+        #undef X
     };
+
     Op op;
     ASTNode* lhs;
     ASTNode* rhs;
 
     explicit BinaryExpr(ASTNode* lhs, ASTNode* rhs, Op op)
-        : ASTNode(NodeType::Binary), op(op), lhs(lhs), rhs(rhs) {}
+        : ASTNode(NodeType::BinaryExpr), op(op), lhs(lhs), rhs(rhs) {}
+
+    std::string_view AsString() const {
+        #define X(name) #name,
+        static constexpr std::string_view ops[] = { OP_LIST() };
+        #undef X
+
+        return ops[(int32_t)op];
+    }
 };
 
 struct VariableDecl : ASTNode {
